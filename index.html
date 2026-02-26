@@ -2,434 +2,602 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>番茄钟 - Pomodoro Timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>2048 Game</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #faf8ef;
             padding: 20px;
-            transition: background 0.5s ease;
-        }
-
-        body.break-mode {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            touch-action: none;
         }
 
         .container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 24px;
-            padding: 40px 30px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
         }
 
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 60px;
+            font-weight: bold;
+            color: #776e65;
+        }
+
+        .scores-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .score-box {
+            background: #bbada0;
+            padding: 8px 15px;
+            border-radius: 6px;
             text-align: center;
-            margin-bottom: 30px;
+            min-width: 80px;
         }
 
-        .header h1 {
-            font-size: 2rem;
-            color: #333;
-            margin-bottom: 10px;
+        .score-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #eee4da;
+            font-weight: bold;
         }
 
-        .header .status {
-            font-size: 1.2rem;
-            font-weight: 600;
-            padding: 8px 20px;
-            border-radius: 20px;
-            display: inline-block;
-            background: #ffeaa7;
-            color: #fdcb6e;
-            transition: all 0.3s ease;
+        .score-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
         }
 
-        .header .status.break {
-            background: #d4edda;
-            color: #28a745;
+        .above-game {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
 
-        .timer-display {
-            text-align: center;
-            margin-bottom: 30px;
+        .game-intro {
+            color: #776e65;
+            font-size: 14px;
         }
 
-        .time {
-            font-size: 5rem;
-            font-weight: 700;
-            color: #333;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 5px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        .restart-btn {
+            background: #8f7a66;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .controls {
+        .restart-btn:hover {
+            background: #9f8b77;
+        }
+
+        .game-container {
+            position: relative;
+            background: #bbada0;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .grid-cell {
+            aspect-ratio: 1;
+            background: rgba(238, 228, 218, 0.35);
+            border-radius: 6px;
+        }
+
+        .tile-container {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            bottom: 15px;
+        }
+
+        .tile {
+            position: absolute;
+            width: calc(25% - 11.25px);
+            aspect-ratio: 1;
+            border-radius: 6px;
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
+            align-items: center;
+            font-weight: bold;
+            transition: all 0.15s ease;
+            z-index: 10;
         }
 
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-width: 100px;
+        .tile-2 { background: #eee4da; color: #776e65; }
+        .tile-4 { background: #ede0c8; color: #776e65; }
+        .tile-8 { background: #f2b179; color: #f9f6f2; }
+        .tile-16 { background: #f59563; color: #f9f6f2; }
+        .tile-32 { background: #f67c5f; color: #f9f6f2; }
+        .tile-64 { background: #f65e3b; color: #f9f6f2; }
+        .tile-128 { background: #edcf72; color: #f9f6f2; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.317); }
+        .tile-256 { background: #edcc61; color: #f9f6f2; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.317); }
+        .tile-512 { background: #edc850; color: #f9f6f2; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.317); }
+        .tile-1024 { background: #edc53f; color: #f9f6f2; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.317); }
+        .tile-2048 { background: #edc22e; color: #f9f6f2; box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.317); }
+        .tile-super { background: #3c3a32; color: #f9f6f2; }
+
+        .tile-new {
+            animation: appear 0.2s ease;
         }
 
-        .btn-primary {
-            background: #667eea;
-            color: white;
+        .tile-merged {
+            animation: pop 0.2s ease;
         }
 
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        @keyframes appear {
+            0% { opacity: 0; transform: scale(0); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
 
-        .btn-secondary:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .settings {
-            background: #f8f9fa;
-            border-radius: 16px;
-            padding: 20px;
-        }
-
-        .settings h3 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.1rem;
-        }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .setting-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .setting-item label {
-            font-size: 0.9rem;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .setting-item input {
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        .setting-item input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .notification {
+        .game-message {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #28a745;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(238, 228, 218, 0.73);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .game-message.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .message-content {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .message-title {
+            font-size: 40px;
+            font-weight: bold;
+            color: #776e65;
+            margin-bottom: 20px;
+        }
+
+        .message-win .message-title {
+            color: #f2b179;
+        }
+
+        .message-btn {
+            background: #8f7a66;
             color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            z-index: 1000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .notification.show {
-            transform: translateX(0);
+        .message-btn:hover {
+            background: #9f8b77;
         }
 
-        @media (max-width: 480px) {
-            .container {
-                padding: 30px 20px;
+        .tile-text {
+            font-size: 32px;
+        }
+
+        .tile-128 .tile-text,
+        .tile-256 .tile-text,
+        .tile-512 .tile-text {
+            font-size: 28px;
+        }
+
+        .tile-1024 .tile-text,
+        .tile-2048 .tile-text {
+            font-size: 24px;
+        }
+
+        .tile-super .tile-text {
+            font-size: 20px;
+        }
+
+        @media (max-width: 500px) {
+            .title {
+                font-size: 40px;
             }
 
-            .header h1 {
-                font-size: 1.6rem;
+            .game-container {
+                padding: 10px;
             }
 
-            .time {
-                font-size: 4rem;
-            }
-
-            .controls {
+            .grid-container {
                 gap: 10px;
             }
 
-            .btn {
-                padding: 10px 20px;
-                font-size: 0.9rem;
+            .tile-container {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
             }
 
-            .settings-grid {
-                grid-template-columns: 1fr;
+            .tile {
+                width: calc(25% - 7.5px);
+            }
+
+            .tile-text {
+                font-size: 24px;
+            }
+
+            .tile-128 .tile-text,
+            .tile-256 .tile-text,
+            .tile-512 .tile-text {
+                font-size: 20px;
+            }
+
+            .tile-1024 .tile-text,
+            .tile-2048 .tile-text {
+                font-size: 18px;
+            }
+
+            .tile-super .tile-text {
+                font-size: 16px;
             }
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
+        .how-to-play {
+            margin-top: 20px;
+            color: #776e65;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
-        .timer-display.pulse {
-            animation: pulse 0.5s ease-in-out;
+        .how-to-play strong {
+            color: #8f7a66;
         }
     </style>
 </head>
 <body>
-    <div class="notification" id="notification">
-        <span id="notificationText"></span>
-    </div>
-
     <div class="container">
         <div class="header">
-            <h1>🍅 番茄钟</h1>
-            <div class="status" id="status">工作时间</div>
-        </div>
-
-        <div class="timer-display" id="timerDisplay">
-            <div class="time" id="time">25:00</div>
-        </div>
-
-        <div class="controls">
-            <button class="btn btn-primary" id="startBtn" onclick="startTimer()">开始</button>
-            <button class="btn btn-secondary" id="pauseBtn" onclick="pauseTimer()" style="display: none;">暂停</button>
-            <button class="btn btn-danger" onclick="resetTimer()">重置</button>
-        </div>
-
-        <div class="settings">
-            <h3>⚙️ 设置</h3>
-            <div class="settings-grid">
-                <div class="setting-item">
-                    <label for="workTime">工作时间（分钟）</label>
-                    <input type="number" id="workTime" value="25" min="1" max="60">
+            <div class="title">2048</div>
+            <div class="scores-container">
+                <div class="score-box">
+                    <div class="score-label">Score</div>
+                    <div class="score-value" id="score">0</div>
                 </div>
-                <div class="setting-item">
-                    <label for="breakTime">休息时间（分钟）</label>
-                    <input type="number" id="breakTime" value="5" min="1" max="30">
+                <div class="score-box">
+                    <div class="score-label">Best</div>
+                    <div class="score-value" id="best">0</div>
                 </div>
             </div>
+        </div>
+
+        <div class="above-game">
+            <div class="game-intro">
+                Join the tiles, get to <strong>2048!</strong>
+            </div>
+            <button class="restart-btn" onclick="restartGame()">New Game</button>
+        </div>
+
+        <div class="game-container">
+            <div class="grid-container">
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+            </div>
+            <div class="tile-container" id="tileContainer"></div>
+        </div>
+
+        <div class="how-to-play">
+            <strong>How to play:</strong> Use your <strong>arrow keys</strong> or <strong>swipe</strong> to move the tiles. When two tiles with the same number touch, they merge into one!
+        </div>
+    </div>
+
+    <div class="game-message" id="gameMessage">
+        <div class="message-content">
+            <div class="message-title" id="messageTitle">Game Over!</div>
+            <button class="message-btn" onclick="restartGame()">Try Again</button>
         </div>
     </div>
 
     <script>
-        let timer = null;
-        let isRunning = false;
-        let isBreak = false;
-        let remainingTime = 25 * 60; // 25分钟默认
-        let audioContext = null;
+        let grid = [];
+        let score = 0;
+        let bestScore = localStorage.getItem('best2048') || 0;
+        let gameOver = false;
+        let won = false;
 
-        function initAudio() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
+        function init() {
+            grid = Array(4).fill(null).map(() => Array(4).fill(0));
+            score = 0;
+            gameOver = false;
+            won = false;
+            document.getElementById('best').textContent = bestScore;
+            document.getElementById('score').textContent = score;
+            document.getElementById('gameMessage').classList.remove('show', 'message-win');
+            addRandomTile();
+            addRandomTile();
+            render();
         }
 
-        function playBeep() {
-            initAudio();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 1);
-            
-            setTimeout(() => {
-                const osc2 = audioContext.createOscillator();
-                const gain2 = audioContext.createGain();
-                osc2.connect(gain2);
-                gain2.connect(audioContext.destination);
-                osc2.frequency.value = 1000;
-                osc2.type = 'sine';
-                gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
-                osc2.start(audioContext.currentTime);
-                osc2.stop(audioContext.currentTime + 1);
-            }, 200);
-        }
-
-        function showNotification(text) {
-            const notification = document.getElementById('notification');
-            const notificationText = document.getElementById('notificationText');
-            notificationText.textContent = text;
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        }
-
-        function updateDisplay() {
-            document.getElementById('time').textContent = formatTime(remainingTime);
-        }
-
-        function updateStatus() {
-            const status = document.getElementById('status');
-            const body = document.body;
-            
-            if (isBreak) {
-                status.textContent = '休息时间';
-                status.classList.add('break');
-                body.classList.add('break-mode');
-            } else {
-                status.textContent = '工作时间';
-                status.classList.remove('break');
-                body.classList.remove('break-mode');
-            }
-        }
-
-        function pulseDisplay() {
-            const display = document.getElementById('timerDisplay');
-            display.classList.add('pulse');
-            setTimeout(() => {
-                display.classList.remove('pulse');
-            }, 500);
-        }
-
-        function startTimer() {
-            if (isRunning) return;
-            
-            isRunning = true;
-            document.getElementById('startBtn').style.display = 'none';
-            document.getElementById('pauseBtn').style.display = 'inline-block';
-            
-            timer = setInterval(() => {
-                remainingTime--;
-                updateDisplay();
-                pulseDisplay();
-                
-                if (remainingTime <= 0) {
-                    timerComplete();
+        function addRandomTile() {
+            const emptyCells = [];
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (grid[r][c] === 0) {
+                        emptyCells.push({ r, c });
+                    }
                 }
-            }, 1000);
+            }
+            if (emptyCells.length > 0) {
+                const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+                return { r, c, isNew: true };
+            }
+            return null;
         }
 
-        function pauseTimer() {
-            if (!isRunning) return;
-            
-            isRunning = false;
-            clearInterval(timer);
-            document.getElementById('startBtn').style.display = 'inline-block';
-            document.getElementById('pauseBtn').style.display = 'none';
+        function render(newTile = null, mergedTiles = []) {
+            const container = document.getElementById('tileContainer');
+            container.innerHTML = '';
+
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (grid[r][c] !== 0) {
+                        const tile = document.createElement('div');
+                        const value = grid[r][c];
+                        tile.className = `tile tile-${value > 2048 ? 'super' : value}`;
+                        if (newTile && newTile.r === r && newTile.c === c) {
+                            tile.classList.add('tile-new');
+                        }
+                        if (mergedTiles.some(t => t.r === r && t.c === c)) {
+                            tile.classList.add('tile-merged');
+                        }
+                        const gap = window.innerWidth <= 500 ? 10 : 15;
+                        const cellSize = (100 - gap * 3) / 4;
+                        const x = c * (cellSize + gap);
+                        const y = r * (cellSize + gap);
+                        tile.style.left = `${x}%`;
+                        tile.style.top = `${y}%`;
+                        tile.innerHTML = `<div class="tile-text">${value}</div>`;
+                        container.appendChild(tile);
+                    }
+                }
+            }
         }
 
-        function resetTimer() {
-            pauseTimer();
-            const workTime = parseInt(document.getElementById('workTime').value) || 25;
-            remainingTime = workTime * 60;
-            isBreak = false;
-            updateDisplay();
-            updateStatus();
+        function canMove() {
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    if (grid[r][c] === 0) return true;
+                    if (c < 3 && grid[r][c] === grid[r][c + 1]) return true;
+                    if (r < 3 && grid[r][c] === grid[r + 1][c]) return true;
+                }
+            }
+            return false;
         }
 
-        function timerComplete() {
-            pauseTimer();
-            playBeep();
-            
-            if (isBreak) {
-                showNotification('🍅 休息结束！开始工作吧！');
-                const workTime = parseInt(document.getElementById('workTime').value) || 25;
-                remainingTime = workTime * 60;
-                isBreak = false;
+        function slideAndMerge(row) {
+            let arr = row.filter(val => val !== 0);
+            let scoreAdd = 0;
+            for (let i = 0; i < arr.length - 1; i++) {
+                if (arr[i] === arr[i + 1]) {
+                    arr[i] *= 2;
+                    scoreAdd += arr[i];
+                    if (arr[i] === 2048) won = true;
+                    arr.splice(i + 1, 1);
+                }
+            }
+            while (arr.length < 4) arr.push(0);
+            return { row: arr, score: scoreAdd };
+        }
+
+        function moveLeft() {
+            let moved = false;
+            let totalScore = 0;
+            let merged = [];
+            for (let r = 0; r < 4; r++) {
+                const original = [...grid[r]];
+                const result = slideAndMerge(grid[r]);
+                grid[r] = result.row;
+                totalScore += result.score;
+                if (original.join(',') !== grid[r].join(',')) {
+                    moved = true;
+                }
+            }
+            score += totalScore;
+            return { moved, merged };
+        }
+
+        function moveRight() {
+            let moved = false;
+            let totalScore = 0;
+            let merged = [];
+            for (let r = 0; r < 4; r++) {
+                const original = [...grid[r]];
+                const result = slideAndMerge(grid[r].reverse());
+                grid[r] = result.row.reverse();
+                totalScore += result.score;
+                if (original.join(',') !== grid[r].join(',')) {
+                    moved = true;
+                }
+            }
+            score += totalScore;
+            return { moved, merged };
+        }
+
+        function moveUp() {
+            let moved = false;
+            let totalScore = 0;
+            let merged = [];
+            for (let c = 0; c < 4; c++) {
+                let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]];
+                const original = [...col];
+                const result = slideAndMerge(col);
+                col = result.row;
+                totalScore += result.score;
+                for (let r = 0; r < 4; r++) {
+                    grid[r][c] = col[r];
+                }
+                if (original.join(',') !== [grid[0][c], grid[1][c], grid[2][c], grid[3][c]].join(',')) {
+                    moved = true;
+                }
+            }
+            score += totalScore;
+            return { moved, merged };
+        }
+
+        function moveDown() {
+            let moved = false;
+            let totalScore = 0;
+            let merged = [];
+            for (let c = 0; c < 4; c++) {
+                let col = [grid[0][c], grid[1][c], grid[2][c], grid[3][c]].reverse();
+                const original = [...col];
+                const result = slideAndMerge(col);
+                col = result.row.reverse();
+                totalScore += result.score;
+                for (let r = 0; r < 4; r++) {
+                    grid[r][c] = col[r];
+                }
+                if (original.join(',') !== [grid[0][c], grid[1][c], grid[2][c], grid[3][c]].join(',')) {
+                    moved = true;
+                }
+            }
+            score += totalScore;
+            return { moved, merged };
+        }
+
+        function handleMove(direction) {
+            if (gameOver) return;
+            let result;
+            switch (direction) {
+                case 'left': result = moveLeft(); break;
+                case 'right': result = moveRight(); break;
+                case 'up': result = moveUp(); break;
+                case 'down': result = moveDown(); break;
+            }
+            if (result.moved) {
+                const newTile = addRandomTile();
+                document.getElementById('score').textContent = score;
+                if (score > bestScore) {
+                    bestScore = score;
+                    localStorage.setItem('best2048', bestScore);
+                    document.getElementById('best').textContent = bestScore;
+                }
+                render(newTile, result.merged);
+                if (won && !document.getElementById('gameMessage').classList.contains('message-win')) {
+                    setTimeout(() => {
+                        document.getElementById('gameMessage').classList.add('show', 'message-win');
+                        document.getElementById('messageTitle').textContent = 'You Win!';
+                    }, 300);
+                } else if (!canMove()) {
+                    gameOver = true;
+                    setTimeout(() => {
+                        document.getElementById('gameMessage').classList.add('show');
+                        document.getElementById('messageTitle').textContent = 'Game Over!';
+                    }, 300);
+                }
+            }
+        }
+
+        function restartGame() {
+            init();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowLeft': e.preventDefault(); handleMove('left'); break;
+                case 'ArrowRight': e.preventDefault(); handleMove('right'); break;
+                case 'ArrowUp': e.preventDefault(); handleMove('up'); break;
+                case 'ArrowDown': e.preventDefault(); handleMove('down'); break;
+            }
+        });
+
+        let startX, startY;
+        document.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!startX || !startY) return;
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+            const minSwipe = 50;
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > minSwipe) {
+                    handleMove(diffX > 0 ? 'right' : 'left');
+                }
             } else {
-                showNotification('🎉 工作完成！该休息了！');
-                const breakTime = parseInt(document.getElementById('breakTime').value) || 5;
-                remainingTime = breakTime * 60;
-                isBreak = true;
+                if (Math.abs(diffY) > minSwipe) {
+                    handleMove(diffY > 0 ? 'down' : 'up');
+                }
             }
-            
-            updateDisplay();
-            updateStatus();
-        }
-
-        document.getElementById('workTime').addEventListener('change', function() {
-            if (!isRunning && !isBreak) {
-                const value = parseInt(this.value) || 25;
-                this.value = Math.min(Math.max(value, 1), 60);
-                remainingTime = this.value * 60;
-                updateDisplay();
-            }
+            startX = null;
+            startY = null;
         });
 
-        document.getElementById('breakTime').addEventListener('change', function() {
-            const value = parseInt(this.value) || 5;
-            this.value = Math.min(Math.max(value, 1), 30);
-        });
-
-        updateDisplay();
-        updateStatus();
+        init();
     </script>
 </body>
 </html>
