@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>番茄钟 - Pomodoro Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            transition: background 0.5s ease;
+        }
+
+        body.break-mode {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header .status {
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 8px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            background: #ffeaa7;
+            color: #fdcb6e;
+            transition: all 0.3s ease;
+        }
+
+        .header .status.break {
+            background: #d4edda;
+            color: #28a745;
+        }
+
+        .timer-display {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .time {
+            font-size: 5rem;
+            font-weight: 700;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .settings {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .settings h3 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .setting-item label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .setting-item input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .setting-item input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .time {
+                font-size: 4rem;
+            }
+
+            .controls {
+                gap: 10px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .timer-display.pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification">
+        <span id="notificationText"></span>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🍅 番茄钟</h1>
+            <div class="status" id="status">工作时间</div>
+        </div>
+
+        <div class="timer-display" id="timerDisplay">
+            <div class="time" id="time">25:00</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn" onclick="startTimer()">开始</button>
+            <button class="btn btn-secondary" id="pauseBtn" onclick="pauseTimer()" style="display: none;">暂停</button>
+            <button class="btn btn-danger" onclick="resetTimer()">重置</button>
+        </div>
+
+        <div class="settings">
+            <h3>⚙️ 设置</h3>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label for="workTime">工作时间（分钟）</label>
+                    <input type="number" id="workTime" value="25" min="1" max="60">
+                </div>
+                <div class="setting-item">
+                    <label for="breakTime">休息时间（分钟）</label>
+                    <input type="number" id="breakTime" value="5" min="1" max="30">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let timer = null;
+        let isRunning = false;
+        let isBreak = false;
+        let remainingTime = 25 * 60; // 25分钟默认
+        let audioContext = null;
+
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBeep() {
+            initAudio();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1);
+            
+            setTimeout(() => {
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.value = 1000;
+                osc2.type = 'sine';
+                gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+                osc2.start(audioContext.currentTime);
+                osc2.stop(audioContext.currentTime + 1);
+            }, 200);
+        }
+
+        function showNotification(text) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notificationText');
+            notificationText.textContent = text;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            document.getElementById('time').textContent = formatTime(remainingTime);
+        }
+
+        function updateStatus() {
+            const status = document.getElementById('status');
+            const body = document.body;
+            
+            if (isBreak) {
+                status.textContent = '休息时间';
+                status.classList.add('break');
+                body.classList.add('break-mode');
+            } else {
+                status.textContent = '工作时间';
+                status.classList.remove('break');
+                body.classList.remove('break-mode');
+            }
+        }
+
+        function pulseDisplay() {
+            const display = document.getElementById('timerDisplay');
+            display.classList.add('pulse');
+            setTimeout(() => {
+                display.classList.remove('pulse');
+            }, 500);
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'inline-block';
+            
+            timer = setInterval(() => {
+                remainingTime--;
+                updateDisplay();
+                pulseDisplay();
+                
+                if (remainingTime <= 0) {
+                    timerComplete();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            if (!isRunning) return;
+            
+            isRunning = false;
+            clearInterval(timer);
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('pauseBtn').style.display = 'none';
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            const workTime = parseInt(document.getElementById('workTime').value) || 25;
+            remainingTime = workTime * 60;
+            isBreak = false;
+            updateDisplay();
+            updateStatus();
+        }
+
+        function timerComplete() {
+            pauseTimer();
+            playBeep();
+            
+            if (isBreak) {
+                showNotification('🍅 休息结束！开始工作吧！');
+                const workTime = parseInt(document.getElementById('workTime').value) || 25;
+                remainingTime = workTime * 60;
+                isBreak = false;
+            } else {
+                showNotification('🎉 工作完成！该休息了！');
+                const breakTime = parseInt(document.getElementById('breakTime').value) || 5;
+                remainingTime = breakTime * 60;
+                isBreak = true;
+            }
+            
+            updateDisplay();
+            updateStatus();
+        }
+
+        document.getElementById('workTime').addEventListener('change', function() {
+            if (!isRunning && !isBreak) {
+                const value = parseInt(this.value) || 25;
+                this.value = Math.min(Math.max(value, 1), 60);
+                remainingTime = this.value * 60;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('breakTime').addEventListener('change', function() {
+            const value = parseInt(this.value) || 5;
+            this.value = Math.min(Math.max(value, 1), 30);
+        });
+
+        updateDisplay();
+        updateStatus();
+    </script>
+</body>
+</html>
